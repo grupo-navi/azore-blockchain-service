@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azore Blockchain API - Interactive Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .code-block { font-family: 'Monaco', 'Menlo', monospace; }
+        .tab-active { border-bottom: 2px solid #6366f1; color: #6366f1; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .spinner { border: 2px solid #f3f3f3; border-top: 2px solid #6366f1; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-6 px-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <img src="/images/logo-dark.png" alt="Azore" class="h-10 brightness-0 invert">
+                <div>
+                    <h1 class="text-2xl font-bold">Blockchain API</h1>
+                    <p class="text-indigo-100 text-sm">Interactive API Tester</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <img src="/images/AZE.png" alt="AZE Token" class="h-8 w-8">
+                <span class="text-sm font-medium">AZE</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Network & Wallet Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Network Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Network</label>
+                    <select id="network" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="testnet">Testnet (Chain ID: 88001)</option>
+                        <option value="mainnet">Mainnet (Chain ID: 8800)</option>
+                    </select>
+                </div>
+
+                <!-- Wallet Connection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Wallet</label>
+                    <div class="flex gap-2">
+                        <button id="connectWallet" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            <span id="walletBtnText">Connect</span>
+                        </button>
+                        <button id="addNetwork" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center justify-center gap-2" title="Add Azore network to MetaMask">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            <span>Add Network</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Connected Address -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Connected Address</label>
+                    <div id="connectedAddress" class="px-4 py-2 bg-gray-100 rounded-lg text-sm text-gray-600 truncate">
+                        Not connected
+                    </div>
+                </div>
+            </div>
+
+            <!-- Private Key Input (Alternative) -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Or use Private Key (for testing only)
+                    <span class="text-red-500 text-xs ml-2">⚠️ Never share your private key</span>
+                </label>
+                <input type="password" id="privateKey" placeholder="0x..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="flex border-b border-gray-200">
+                <button class="tab-btn px-6 py-4 font-medium text-gray-600 hover:text-indigo-600 tab-active" data-tab="balance">
+                    💰 Balance
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-gray-600 hover:text-indigo-600" data-tab="token">
+                    🪙 Token
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-gray-600 hover:text-indigo-600" data-tab="contract">
+                    📜 Contract
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-gray-600 hover:text-indigo-600" data-tab="transaction">
+                    📤 Transaction
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-gray-600 hover:text-indigo-600" data-tab="explorer">
+                    🔍 Explorer
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="p-6">
+                <!-- Balance Tab -->
+                <div id="tab-balance" class="tab-content">
+                    <h3 class="text-lg font-semibold mb-4">Check Balance</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                            <input type="text" id="balanceAddress" placeholder="0x..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <button onclick="checkBalance()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            Check Balance
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Token Tab -->
+                <div id="tab-token" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold mb-4">Token Operations</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Token Info -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Get Token Info</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="tokenInfoAddress" placeholder="Token contract address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getTokenInfo()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get Info
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Token Balance -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Get Token Balance</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="tokenBalanceContract" placeholder="Token contract address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="tokenBalanceWallet" placeholder="Wallet address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getTokenBalance()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get Balance
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Token Transfer -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Transfer Tokens</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="transferTokenAddress" placeholder="Token contract address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="transferToAddress" placeholder="To address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="transferAmount" placeholder="Amount" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="transferTokens()" class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm">
+                                    Transfer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Allowance -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Check Allowance</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="allowanceToken" placeholder="Token contract address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="allowanceOwner" placeholder="Owner address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="allowanceSpender" placeholder="Spender address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="checkAllowance()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Check Allowance
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contract Tab -->
+                <div id="tab-contract" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold mb-4">Contract Interaction</h3>
+
+                    <!-- Contract Address and ABI Input -->
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Contract Address</label>
+                            <input type="text" id="contractAddress" placeholder="0x..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                ABI (JSON array)
+                            </label>
+                            <textarea id="contractABI" rows="4" placeholder='[{"name":"balanceOf","type":"function","inputs":[{"name":"account","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"}]' class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm"></textarea>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button onclick="loadContractFunctions()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Load Functions
+                            </button>
+                            <button onclick="fetchABI()" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                Fetch ABI from Explorer
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Functions Display (Two Columns) -->
+                    <div id="contractFunctionsContainer" class="hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Read Functions Column -->
+                            <div class="bg-blue-50 rounded-xl p-4">
+                                <h4 class="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    Funções de Leitura
+                                    <span class="text-xs font-normal text-blue-600">(Sem custo de gas)</span>
+                                </h4>
+                                <div id="readFunctions" class="space-y-2">
+                                    <!-- Dynamically populated -->
+                                </div>
+                            </div>
+
+                            <!-- Write Functions Column -->
+                            <div class="bg-orange-50 rounded-xl p-4">
+                                <h4 class="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                    Funções de Escrita
+                                    <span class="text-xs font-normal text-orange-600">(Requer gas)</span>
+                                </h4>
+                                <div id="writeFunctions" class="space-y-2">
+                                    <!-- Dynamically populated -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Tab -->
+                <div id="tab-transaction" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold mb-4">Transaction Operations</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Send Native -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Send AZE</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="sendTo" placeholder="To address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="sendAmount" placeholder="Amount in AZE" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="sendTransaction()" class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm">
+                                    Send Transaction
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Get Transaction -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Get Transaction Info</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="txHash" placeholder="Transaction hash" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getTransaction()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get Transaction
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gas Price -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Gas Price</h4>
+                            <button onclick="getGasPrice()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                Get Current Gas Price
+                            </button>
+                        </div>
+
+                        <!-- Estimate Gas -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Estimate Gas</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="estimateTo" placeholder="To address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="text" id="estimateValue" placeholder="Value in AZE" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="estimateGas()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Estimate Gas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explorer Tab -->
+                <div id="tab-explorer" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold mb-4">Explorer API</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Complete Balances -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Complete Balances</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="explorerAddress" placeholder="Address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getCompleteBalances()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get All Balances
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Transaction History -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Transaction History</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="historyAddress" placeholder="Address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getTransactionHistory()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get History
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Token Holders -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Token Holders</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="holdersContract" placeholder="Token contract address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getTokenHolders()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get Holders
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Verified Contract ABI -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-medium mb-3">Get Verified Contract ABI</h4>
+                            <div class="space-y-3">
+                                <input type="text" id="verifiedContract" placeholder="Contract address" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button onclick="getVerifiedABI()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                    Get ABI
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="bg-white rounded-xl shadow-md p-6 mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Results</h3>
+                <button onclick="clearResults()" class="text-sm text-gray-500 hover:text-gray-700">Clear</button>
+            </div>
+            <div id="results" class="space-y-4">
+                <p class="text-gray-500 text-sm">Execute an operation to see results here</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        <p>Azore Blockchain Service v1.0.0</p>
+        <p class="mt-1">
+            <a href="/docs" class="text-indigo-600 hover:underline">API Documentation</a> |
+            <a href="/health" class="text-indigo-600 hover:underline">Health Check</a>
+        </p>
+    </footer>
+
+    <script>
+        // State
+        let connectedAddress = null;
+        let provider = null;
+        let signer = null;
+
+        // API Base URL
+        const API_BASE = '';
+
+        // Network configurations for MetaMask
+        const networkConfigs = {
+            testnet: {
+                chainId: '0x157C1', // 88001 in hex
+                chainName: 'Azore Testnet',
+                nativeCurrency: {
+                    name: 'AZORE',
+                    symbol: 'AZORE',
+                    decimals: 18
+                },
+                rpcUrls: ['https://rpc-testnet.azore.technology'],
+                blockExplorerUrls: ['https://floripa.azorescan.com']
+            },
+            mainnet: {
+                chainId: '0x2260', // 8800 in hex
+                chainName: 'Azore Mainnet',
+                nativeCurrency: {
+                    name: 'AZORE',
+                    symbol: 'AZORE',
+                    decimals: 18
+                },
+                rpcUrls: ['https://rpc-mainnet.azore.technology'],
+                blockExplorerUrls: ['https://azorescan.com']
+            }
+        };
+
+        // Get current network
+        function getNetwork() {
+            return document.getElementById('network').value;
+        }
+
+        // Get private key
+        function getPrivateKey() {
+            return document.getElementById('privateKey').value;
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                btn.classList.add('tab-active');
+                document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+            });
+        });
+
+        // Connect MetaMask
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            if (typeof window.ethereum === 'undefined') {
+                showResult('error', 'MetaMask not installed', 'Please install MetaMask extension');
+                return;
+            }
+
+            // Check if it's actually MetaMask
+            if (!window.ethereum.isMetaMask) {
+                showResult('error', 'MetaMask not found', 'Another wallet is injected. Please disable other wallet extensions and use MetaMask.');
+                return;
+            }
+
+            try {
+                // Force fresh connection by requesting permissions (opens popup)
+                await window.ethereum.request({
+                    method: 'wallet_requestPermissions',
+                    params: [{ eth_accounts: {} }]
+                });
+
+                // Now get the accounts
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+
+                if (!accounts || accounts.length === 0) {
+                    showResult('error', 'No accounts', 'Please unlock MetaMask and try again');
+                    return;
+                }
+
+                connectedAddress = accounts[0];
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+
+                document.getElementById('connectedAddress').textContent = connectedAddress;
+                document.getElementById('walletBtnText').textContent = 'Connected';
+                document.getElementById('connectWallet').classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                document.getElementById('connectWallet').classList.add('bg-green-600', 'hover:bg-green-700');
+
+                // Auto-fill address fields
+                document.getElementById('balanceAddress').value = connectedAddress;
+
+                showResult('success', 'Wallet Connected', `Address: ${connectedAddress}`);
+            } catch (error) {
+                if (error.code === 4001) {
+                    showResult('error', 'Connection Rejected', 'User rejected the connection request');
+                } else {
+                    showResult('error', 'Connection Failed', error.message);
+                }
+            }
+        });
+
+        // Add Network to MetaMask
+        document.getElementById('addNetwork').addEventListener('click', async () => {
+            if (typeof window.ethereum === 'undefined') {
+                showResult('error', 'MetaMask not installed', 'Please install MetaMask extension');
+                return;
+            }
+
+            const network = getNetwork();
+            const config = networkConfigs[network];
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [config]
+                });
+
+                showResult('success', 'Network Added', `${config.chainName} has been added to MetaMask. You can now switch to it.`);
+            } catch (error) {
+                if (error.code === 4001) {
+                    showResult('error', 'Cancelled', 'User cancelled the request');
+                } else if (error.code === -32602) {
+                    showResult('info', 'Already Added', `${config.chainName} is already configured in MetaMask`);
+                } else {
+                    showResult('error', 'Failed to Add Network', error.message);
+                }
+            }
+        });
+
+        // API Request helper
+        async function apiRequest(method, endpoint, data = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            return response.json();
+        }
+
+        // Show result
+        function showResult(type, title, content, extra = null) {
+            const resultsDiv = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+
+            const bgColor = type === 'success' ? 'bg-green-50 border-green-200' :
+                           type === 'error' ? 'bg-red-50 border-red-200' :
+                           'bg-blue-50 border-blue-200';
+            const textColor = type === 'success' ? 'text-green-800' :
+                             type === 'error' ? 'text-red-800' :
+                             'text-blue-800';
+
+            let contentHtml = typeof content === 'object' ?
+                `<pre class="code-block text-xs overflow-x-auto">${JSON.stringify(content, null, 2)}</pre>` :
+                `<p>${content}</p>`;
+
+            if (extra) {
+                contentHtml += `<div class="mt-2 pt-2 border-t border-gray-200">${extra}</div>`;
+            }
+
+            const resultHtml = `
+                <div class="border rounded-lg p-4 ${bgColor} fade-in">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-medium ${textColor}">${title}</h4>
+                        <span class="text-xs text-gray-500">${timestamp}</span>
+                    </div>
+                    <div class="text-sm ${textColor}">${contentHtml}</div>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = resultHtml + resultsDiv.innerHTML;
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('results').innerHTML = '<p class="text-gray-500 text-sm">Execute an operation to see results here</p>';
+        }
+
+        // ========================================
+        // Balance Operations
+        // ========================================
+        async function checkBalance() {
+            const address = document.getElementById('balanceAddress').value;
+            if (!address) {
+                showResult('error', 'Error', 'Please enter an address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/blockchain/balance/${address}?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Balance', result.data,
+                        `<strong>${result.data.balanceEth}</strong> ${getNetwork() === 'testnet' ? 'AZE-t' : 'AZE'}`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        // ========================================
+        // Token Operations
+        // ========================================
+        async function getTokenInfo() {
+            const address = document.getElementById('tokenInfoAddress').value;
+            if (!address) {
+                showResult('error', 'Error', 'Please enter token address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/token/info/${address}?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Token Info', result.data);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function getTokenBalance() {
+            const token = document.getElementById('tokenBalanceContract').value;
+            const wallet = document.getElementById('tokenBalanceWallet').value;
+            if (!token || !wallet) {
+                showResult('error', 'Error', 'Please fill all fields');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/token/balance/${token}/${wallet}?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Token Balance', result.data,
+                        `<strong>${result.data.balanceEth}</strong> ${result.data.tokenSymbol}`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function transferTokens() {
+            const token = document.getElementById('transferTokenAddress').value;
+            const to = document.getElementById('transferToAddress').value;
+            const amount = document.getElementById('transferAmount').value;
+            const privateKey = getPrivateKey();
+
+            if (!token || !to || !amount || !privateKey) {
+                showResult('error', 'Error', 'Please fill all fields including private key');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('POST', '/api/token/transfer', {
+                    tokenAddress: token,
+                    privateKey,
+                    toAddress: to,
+                    amount,
+                    network: getNetwork()
+                });
+
+                if (result.success) {
+                    showResult('success', 'Transfer Success', result.data,
+                        `<a href="https://floripa.azorescan.com/tx/${result.data.transactionHash}" target="_blank" class="text-indigo-600 hover:underline">View on Explorer</a>`);
+                } else {
+                    showResult('error', 'Transfer Failed', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function checkAllowance() {
+            const token = document.getElementById('allowanceToken').value;
+            const owner = document.getElementById('allowanceOwner').value;
+            const spender = document.getElementById('allowanceSpender').value;
+
+            if (!token || !owner || !spender) {
+                showResult('error', 'Error', 'Please fill all fields');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/token/allowance/${token}/${owner}/${spender}?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Allowance', result.data,
+                        `<strong>${result.data.allowanceEth}</strong> tokens approved`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        // ========================================
+        // Contract Operations
+        // ========================================
+
+        // Store current ABI for function calls
+        let currentContractABI = [];
+
+        // Load and display contract functions
+        function loadContractFunctions() {
+            const abiStr = document.getElementById('contractABI').value;
+            const contractAddress = document.getElementById('contractAddress').value;
+
+            if (!abiStr) {
+                showResult('error', 'Error', 'Please enter the contract ABI');
+                return;
+            }
+
+            if (!contractAddress) {
+                showResult('error', 'Error', 'Please enter the contract address');
+                return;
+            }
+
+            try {
+                const abi = JSON.parse(abiStr);
+                currentContractABI = abi;
+
+                // Filter only functions
+                const functions = abi.filter(item => item.type === 'function');
+
+                // Separate read and write functions
+                const readFunctions = functions.filter(fn =>
+                    fn.stateMutability === 'view' || fn.stateMutability === 'pure'
+                );
+                const writeFunctions = functions.filter(fn =>
+                    fn.stateMutability === 'nonpayable' || fn.stateMutability === 'payable'
+                );
+
+                // Generate UI
+                const readContainer = document.getElementById('readFunctions');
+                const writeContainer = document.getElementById('writeFunctions');
+
+                readContainer.innerHTML = readFunctions.length > 0
+                    ? readFunctions.map(fn => createFunctionAccordion(fn, 'read')).join('')
+                    : '<p class="text-sm text-gray-500">Nenhuma função de leitura encontrada</p>';
+
+                writeContainer.innerHTML = writeFunctions.length > 0
+                    ? writeFunctions.map(fn => createFunctionAccordion(fn, 'write')).join('')
+                    : '<p class="text-sm text-gray-500">Nenhuma função de escrita encontrada</p>';
+
+                // Show container
+                document.getElementById('contractFunctionsContainer').classList.remove('hidden');
+
+                showResult('success', 'Functions Loaded',
+                    `Found ${readFunctions.length} read functions and ${writeFunctions.length} write functions`);
+
+            } catch (error) {
+                showResult('error', 'Invalid ABI', error.message);
+            }
+        }
+
+        // Create accordion HTML for a function
+        function createFunctionAccordion(fn, type) {
+            const fnId = `fn_${fn.name}_${Math.random().toString(36).substr(2, 9)}`;
+            const paramCount = fn.inputs ? fn.inputs.length : 0;
+            const isRead = type === 'read';
+
+            const bgColor = isRead ? 'bg-white' : 'bg-white';
+            const borderColor = isRead ? 'border-blue-200' : 'border-orange-200';
+            const iconColor = isRead ? 'text-blue-500' : 'text-orange-500';
+            const btnColor = isRead ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-500 hover:bg-orange-600';
+            const btnText = isRead ? 'Consultar' : 'Enviar Transação';
+
+            // Generate input fields for parameters
+            const paramsHtml = fn.inputs && fn.inputs.length > 0
+                ? `<div class="mt-3 space-y-3">
+                    <p class="text-xs font-semibold text-gray-600 uppercase">Parâmetros</p>
+                    ${fn.inputs.map((input, idx) => `
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">${input.name || `param${idx}`} (${input.type})</label>
+                            <input type="text"
+                                id="${fnId}_param_${idx}"
+                                placeholder="${getPlaceholder(input.type)}"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    `).join('')}
+                   </div>`
+                : '';
+
+            return `
+                <div class="${bgColor} border ${borderColor} rounded-lg overflow-hidden">
+                    <button onclick="toggleAccordion('${fnId}')"
+                        class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                ${isRead
+                                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>'
+                                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>'
+                                }
+                            </svg>
+                            <span class="font-medium text-sm">${fn.name}</span>
+                            <span class="text-xs text-gray-500">(${paramCount} parâmetro${paramCount !== 1 ? 's' : ''})</span>
+                        </span>
+                        <svg id="${fnId}_chevron" class="w-4 h-4 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div id="${fnId}_content" class="hidden px-4 pb-4 border-t border-gray-100">
+                        ${paramsHtml}
+                        <button onclick="executeFunction('${fn.name}', '${fnId}', ${paramCount}, '${type}')"
+                            class="mt-3 w-full px-4 py-2 ${btnColor} text-white rounded-lg text-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                            </svg>
+                            ${btnText}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get placeholder text based on parameter type
+        function getPlaceholder(type) {
+            if (type.includes('address')) return 'Digite address';
+            if (type.includes('uint') || type.includes('int')) return 'Digite número';
+            if (type.includes('bool')) return 'true ou false';
+            if (type.includes('bytes')) return '0x...';
+            if (type.includes('string')) return 'Digite texto';
+            return 'Digite valor';
+        }
+
+        // Toggle accordion
+        function toggleAccordion(fnId) {
+            const content = document.getElementById(`${fnId}_content`);
+            const chevron = document.getElementById(`${fnId}_chevron`);
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        // Execute function from accordion
+        async function executeFunction(functionName, fnId, paramCount, type) {
+            const contractAddress = document.getElementById('contractAddress').value;
+
+            // Collect parameters
+            const params = [];
+            for (let i = 0; i < paramCount; i++) {
+                const paramInput = document.getElementById(`${fnId}_param_${i}`);
+                if (paramInput) {
+                    let value = paramInput.value.trim();
+                    // Try to parse as number if it looks like one
+                    if (/^\d+$/.test(value)) {
+                        value = value; // Keep as string for BigInt compatibility
+                    } else if (value === 'true') {
+                        value = true;
+                    } else if (value === 'false') {
+                        value = false;
+                    }
+                    params.push(value);
+                }
+            }
+
+            try {
+                if (type === 'read') {
+                    const result = await apiRequest('POST', '/api/contract/call', {
+                        contractAddress,
+                        abi: currentContractABI,
+                        functionName,
+                        params,
+                        network: getNetwork()
+                    });
+
+                    if (result.success) {
+                        showResult('success', `${functionName}() Result`, result.data);
+                    } else {
+                        showResult('error', 'Call Failed', result.error);
+                    }
+                } else {
+                    // Write operation - check for MetaMask or private key
+                    const privateKey = getPrivateKey();
+
+                    if (connectedAddress && signer) {
+                        // Use MetaMask
+                        try {
+                            showResult('info', 'Aguardando MetaMask...', 'Por favor, confirme a transação na MetaMask');
+
+                            const contract = new ethers.Contract(contractAddress, currentContractABI, signer);
+                            const tx = await contract[functionName](...params);
+
+                            showResult('info', 'Transação enviada', `Hash: ${tx.hash}. Aguardando confirmação...`);
+
+                            const receipt = await tx.wait();
+
+                            const explorerUrl = getNetwork() === 'testnet'
+                                ? 'https://floripa.azorescan.com'
+                                : 'https://azorescan.com';
+
+                            showResult('success', `${functionName}() Executed`, {
+                                transactionHash: receipt.hash,
+                                blockNumber: receipt.blockNumber,
+                                gasUsed: receipt.gasUsed.toString()
+                            }, `<a href="${explorerUrl}/tx/${receipt.hash}" target="_blank" class="text-indigo-600 hover:underline">View on Explorer</a>`);
+
+                        } catch (error) {
+                            if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+                                showResult('error', 'Transação Cancelada', 'Você rejeitou a transação na MetaMask');
+                            } else {
+                                showResult('error', 'Execution Failed', error.message);
+                            }
+                        }
+                    } else if (privateKey) {
+                        // Use private key via API
+                        const result = await apiRequest('POST', '/api/contract/execute', {
+                            contractAddress,
+                            abi: currentContractABI,
+                            functionName,
+                            params,
+                            privateKey,
+                            network: getNetwork()
+                        });
+
+                        if (result.success) {
+                            const explorerUrl = getNetwork() === 'testnet'
+                                ? 'https://floripa.azorescan.com'
+                                : 'https://azorescan.com';
+                            showResult('success', `${functionName}() Executed`, result.data,
+                                `<a href="${explorerUrl}/tx/${result.data.transactionHash}" target="_blank" class="text-indigo-600 hover:underline">View on Explorer</a>`);
+                        } else {
+                            showResult('error', 'Execution Failed', result.error);
+                        }
+                    } else {
+                        showResult('error', 'Error', 'Please connect MetaMask or enter a private key for write operations');
+                        return;
+                    }
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function callContract() {
+            const contractAddress = document.getElementById('contractAddress').value;
+            const functionName = document.getElementById('functionName').value;
+            const abiStr = document.getElementById('contractABI').value;
+            const paramsStr = document.getElementById('functionParams').value;
+
+            if (!contractAddress || !functionName || !abiStr) {
+                showResult('error', 'Error', 'Please fill contract address, function name, and ABI');
+                return;
+            }
+
+            try {
+                const abi = JSON.parse(abiStr);
+                const params = paramsStr ? JSON.parse(paramsStr) : [];
+
+                const result = await apiRequest('POST', '/api/contract/call', {
+                    contractAddress,
+                    abi,
+                    functionName,
+                    params,
+                    network: getNetwork()
+                });
+
+                if (result.success) {
+                    showResult('success', `${functionName}() Result`, result.data);
+                } else {
+                    showResult('error', 'Call Failed', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function executeContract() {
+            const contractAddress = document.getElementById('contractAddress').value;
+            const functionName = document.getElementById('functionName').value;
+            const abiStr = document.getElementById('contractABI').value;
+            const paramsStr = document.getElementById('functionParams').value;
+            const privateKey = getPrivateKey();
+
+            if (!contractAddress || !functionName || !abiStr || !privateKey) {
+                showResult('error', 'Error', 'Please fill all fields including private key');
+                return;
+            }
+
+            try {
+                const abi = JSON.parse(abiStr);
+                const params = paramsStr ? JSON.parse(paramsStr) : [];
+
+                const result = await apiRequest('POST', '/api/contract/execute', {
+                    contractAddress,
+                    abi,
+                    functionName,
+                    params,
+                    privateKey,
+                    network: getNetwork()
+                });
+
+                if (result.success) {
+                    showResult('success', `${functionName}() Executed`, result.data,
+                        `<a href="https://floripa.azorescan.com/tx/${result.data.transactionHash}" target="_blank" class="text-indigo-600 hover:underline">View on Explorer</a>`);
+                } else {
+                    showResult('error', 'Execution Failed', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function fetchABI() {
+            const contractAddress = document.getElementById('contractAddress').value;
+            if (!contractAddress) {
+                showResult('error', 'Error', 'Please enter contract address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/explorer/contract/${contractAddress}/abi?network=${getNetwork()}`);
+                if (result.success) {
+                    document.getElementById('contractABI').value = JSON.stringify(result.data, null, 2);
+                    showResult('success', 'ABI Fetched', `Found ${result.data.length} items. Click "Load Functions" to display them.`);
+                    // Auto-load functions
+                    loadContractFunctions();
+                } else {
+                    showResult('error', 'ABI Not Found', result.error || 'Contract may not be verified');
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        // ========================================
+        // Transaction Operations
+        // ========================================
+        async function sendTransaction() {
+            const to = document.getElementById('sendTo').value;
+            const amount = document.getElementById('sendAmount').value;
+            const privateKey = getPrivateKey();
+
+            if (!to || !amount || !privateKey) {
+                showResult('error', 'Error', 'Please fill all fields including private key');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('POST', '/api/transaction/send', {
+                    privateKey,
+                    to,
+                    amount,
+                    network: getNetwork()
+                });
+
+                if (result.success) {
+                    showResult('success', 'Transaction Sent', result.data,
+                        `<a href="https://floripa.azorescan.com/tx/${result.data.transactionHash}" target="_blank" class="text-indigo-600 hover:underline">View on Explorer</a>`);
+                } else {
+                    showResult('error', 'Transaction Failed', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function getTransaction() {
+            const txHash = document.getElementById('txHash').value;
+            if (!txHash) {
+                showResult('error', 'Error', 'Please enter transaction hash');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/transaction/${txHash}?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Transaction Info', result.data);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function getGasPrice() {
+            try {
+                const result = await apiRequest('GET', `/api/transaction/gas/price?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Gas Price', result.data,
+                        `<strong>${result.data.gasPriceGwei}</strong> Gwei`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function estimateGas() {
+            const to = document.getElementById('estimateTo').value;
+            const value = document.getElementById('estimateValue').value;
+
+            if (!to) {
+                showResult('error', 'Error', 'Please enter destination address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('POST', '/api/transaction/gas/estimate', {
+                    to,
+                    value: value || '0',
+                    data: '0x',
+                    network: getNetwork()
+                });
+
+                if (result.success) {
+                    showResult('success', 'Gas Estimate', result.data,
+                        `Estimated gas: <strong>${result.data.gasLimitNumber}</strong>`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        // ========================================
+        // Explorer Operations
+        // ========================================
+        async function getCompleteBalances() {
+            const address = document.getElementById('explorerAddress').value;
+            if (!address) {
+                showResult('error', 'Error', 'Please enter address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/explorer/balances/${address}?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Complete Balances', result.data,
+                        `Total tokens: <strong>${result.data.totalTokens}</strong>`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function getTransactionHistory() {
+            const address = document.getElementById('historyAddress').value;
+            if (!address) {
+                showResult('error', 'Error', 'Please enter address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/explorer/transactions/${address}?network=${getNetwork()}&page=1&offset=10`);
+                if (result.success) {
+                    showResult('success', 'Transaction History', result.data,
+                        `Found <strong>${result.data?.length || 0}</strong> transactions`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function getTokenHolders() {
+            const contract = document.getElementById('holdersContract').value;
+            if (!contract) {
+                showResult('error', 'Error', 'Please enter contract address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/explorer/holders/${contract}?network=${getNetwork()}&page=1&offset=10`);
+                if (result.success) {
+                    showResult('success', 'Token Holders', result.data,
+                        `Found <strong>${result.data?.length || 0}</strong> holders`);
+                } else {
+                    showResult('error', 'Error', result.error);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+
+        async function getVerifiedABI() {
+            const contract = document.getElementById('verifiedContract').value;
+            if (!contract) {
+                showResult('error', 'Error', 'Please enter contract address');
+                return;
+            }
+
+            try {
+                const result = await apiRequest('GET', `/api/explorer/contract/${contract}/abi?network=${getNetwork()}`);
+                if (result.success) {
+                    showResult('success', 'Contract ABI', result.data,
+                        `Found <strong>${result.data?.length || 0}</strong> entries in ABI`);
+                } else {
+                    showResult('error', 'Error', result.error || 'Contract not verified');
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', error.message);
+            }
+        }
+    </script>
+</body>
+</html>
