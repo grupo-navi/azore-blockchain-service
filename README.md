@@ -59,6 +59,13 @@ npm start
 | Testnet | 88001 | https://rpc-testnet.azore.technology | https://floripa.azorescan.com |
 | Mainnet | 8800 | https://rpc-mainnet.azore.technology | https://azorescan.com |
 
+## Obter Tokens AZE
+
+| Rede | Token | Onde Obter |
+|------|-------|------------|
+| Testnet | AZE-t | https://faucet.azorescan.com/ |
+| Mainnet | AZE | https://app.coinage.trade/ |
+
 ## API Endpoints
 
 ### Wallet
